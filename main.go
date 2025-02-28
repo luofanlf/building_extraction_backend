@@ -1,10 +1,13 @@
 package main
 
 import (
-	"building-extraction/api/controllers"
+	"building-extraction/api/controller"
 	"building-extraction/internal/model"
+	"building-extraction/internal/service"
 	"fmt"
 	"log"
+
+	"building-extraction/api/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -29,6 +32,7 @@ func main() {
 		fmt.Println("自动迁移成功")
 	}
 	r := gin.Default()
+	r.MaxMultipartMemory = 20 << 20
 
 	//health check
 	r.GET("/api/message", func(c *gin.Context) {
@@ -37,7 +41,23 @@ func main() {
 		})
 	})
 
-	ctrl := controllers.NewBuildingExtractionController()
-	r.POST("/api/login", ctrl.HandleLogin)
+	service := service.NewBuildingExtractionService(db)
+	ctrl := controller.NewBuildingExtractionController(service)
+
+	// API 路由组
+	api := r.Group("/api")
+
+	// 公开路由
+	api.POST("/login", ctrl.HandleLogin)
+	api.POST("/register", ctrl.HandleRegister)
+
+	// 需要认证的路由
+	authorized := api.Group("")
+	authorized.Use(middleware.AuthMiddleware())
+	{
+		// authorized.POST("/extraction", ctrl.HandleExtraction)
+		authorized.POST("/upload", ctrl.UploadHandler)
+	}
+
 	r.Run(":8080")
 }
