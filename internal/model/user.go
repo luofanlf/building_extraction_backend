@@ -5,3 +5,7 @@ type User struct {
 	Username string `gorm:"not null;column:username" json:"username"`
 	Password string `gorm:"not null;column:password" json:"password"`
 }
+
+func (User) TableName() string {
+	return "users"
+}
