@@ -51,3 +51,13 @@ func (d *BuildingExtractionDao) GetUserByUsername(db *gorm.DB, username string) 
 	}
 	return &user, nil
 }
+
+func (d *BuildingExtractionDao) GetAllProjects(db *gorm.DB) ([]model.Project, error) {
+	var projects []model.Project
+	err := db.Model(&model.Project{}).Find(&projects).Error
+	if err != nil {
+		d.logger.Error("get all projects failed", zap.Error(err))
+		return nil, err
+	}
+	return projects, nil
+}
