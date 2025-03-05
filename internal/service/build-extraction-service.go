@@ -190,3 +190,47 @@ func generateUniqueFilename(originalFilename string) string {
 	timestamp := time.Now().Unix()
 	return fmt.Sprintf("%d_%s%s", timestamp, uuid, ext)
 }
+
+func (s *BuildingExtractionService) ExtractBuildings(imageURL string) (string, error) {
+	// 1. 获取原始图片路径
+	uploadDir := "./uploads"
+	originalFileName := path.Base(imageURL)
+	originalFilePath := path.Join(uploadDir, originalFileName)
+
+	// 2. 确保assets目录存在
+	assetsDir := "./assets"
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		s.logger.Error("failed to create assets directory", zap.Error(err))
+		return "", fmt.Errorf("创建assets目录失败")
+	}
+
+	// 3. 为处理结果创建唯一文件名
+	resultFileName := fmt.Sprintf("extracted_%s", originalFileName)
+	resultFilePath := path.Join(assetsDir, resultFileName)
+
+	// 4. 调用建筑物提取模型处理图片
+	err := s.processImageWithModel(originalFilePath, resultFilePath)
+	if err != nil {
+		s.logger.Error("building extraction failed", zap.Error(err))
+		return "", fmt.Errorf("建筑物提取失败: %v", err)
+	}
+
+	// 5. 返回结果图片的URL
+	resultURL := "/assets/" + resultFileName
+	return resultURL, nil
+}
+
+func (s *BuildingExtractionService) processImageWithModel(inputPath, outputPath string) error {
+	// 1. 预处理图像，将其转换为模型输入格式
+	return nil
+}
+
+func (s *BuildingExtractionService) GetAllProjects() ([]model.Project, error) {
+	projects, err := s.dao.GetAllProjects(s.db)
+	if err != nil {
+		s.logger.Error("get all projects failed", zap.Error(err))
+		return nil, err
+	}
+
+	return projects, nil
+}

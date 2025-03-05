@@ -26,13 +26,15 @@ func main() {
 	fmt.Println("数据库连接成功")
 
 	// 自动迁移
-	if err := db.AutoMigrate(&model.User{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Project{}); err != nil {
 		log.Printf("自动迁移警告: %v", err)
 	} else {
 		fmt.Println("自动迁移成功")
 	}
 	r := gin.Default()
 	r.MaxMultipartMemory = 20 << 20
+
+	r.Static("/uploads", "./uploads")
 
 	//health check
 	r.GET("/api/message", func(c *gin.Context) {
@@ -56,7 +58,8 @@ func main() {
 	authorized.Use(middleware.AuthMiddleware())
 	{
 		// authorized.POST("/extraction", ctrl.HandleExtraction)
-		authorized.POST("/upload", ctrl.UploadHandler)
+		authorized.POST("/extraction", ctrl.HandleExtraction)
+		authorized.GET("/projects", ctrl.HandleGetProjects)
 	}
 
 	r.Run(":8080")

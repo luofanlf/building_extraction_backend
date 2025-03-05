@@ -77,26 +77,7 @@ func (c *BuildingExtractionController) HandleRegister(ctx *gin.Context) {
 	})
 }
 
-func (c *BuildingExtractionController) HandleUserInfo(ctx *gin.Context) {
-	username, exists := ctx.Get("username")
-	if !exists {
-		dto.FailWithMessage("user not found", ctx)
-		return
-	}
-
-	user, err := c.service.GetUserInfo(username.(string))
-	if err != nil {
-		c.logger.Error("get user info failed", zap.Error(err))
-		dto.FailWithMessage(err.Error(), ctx)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, dto.Response{
-		Data: user,
-	})
-}
-
-func (c *BuildingExtractionController) UploadHandler(ctx *gin.Context) {
+func (c *BuildingExtractionController) HandleExtraction(ctx *gin.Context) {
 	// 1. 从请求中获取文件
 	file, header, err := ctx.Request.FormFile("image")
 	if err != nil {
@@ -114,5 +95,22 @@ func (c *BuildingExtractionController) UploadHandler(ctx *gin.Context) {
 	// 10. 返回成功响应和文件路径
 	ctx.JSON(http.StatusOK, dto.Response{
 		Data: fileURL,
+	})
+}
+
+func (c *BuildingExtractionController) HandleGetProjects(ctx *gin.Context) {
+	projects, err := c.service.GetAllProjects()
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	projectResponses := make([]dto.ProjectResponse, len(projects))
+	for i, project := range projects {
+		projectResponses[i] = dto.ProjectToResponse(&project)
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: projectResponses,
 	})
 }
