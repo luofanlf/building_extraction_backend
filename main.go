@@ -17,7 +17,7 @@ import (
 
 func main() {
 	//connect to postgres
-	dsn := "host=localhost user=root password=root dbname=building_extraction port=5432 sslmode=disable"
+	dsn := "host=localhost user=myuser password=mypassword dbname=building_extraction port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("数据库连接失败:", err)
