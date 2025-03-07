@@ -4,4 +4,7 @@
 
 # 但保留目录本身（通过添加 .gitkeep 文件）
 !/uploads/.gitkeep
-!/results/.gitkeep 
+!/results/.gitkeep
+
+# 忽略模型文件
+ml_server/models/*.ckpt 
