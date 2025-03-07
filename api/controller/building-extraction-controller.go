@@ -86,15 +86,19 @@ func (c *BuildingExtractionController) HandleExtraction(ctx *gin.Context) {
 	}
 	defer file.Close()
 
-	fileURL, err := c.service.UploadImage(file, header)
+	fileURL, inputImage, outputImage, err := c.service.ExtractBuildings(file, header)
 	if err != nil {
 		dto.FailWithMessage(err.Error(), ctx)
 		return
 	}
 
-	// 10. 返回成功响应和文件路径
+	// 返回原始图片和掩码图片的URL
 	ctx.JSON(http.StatusOK, dto.Response{
-		Data: fileURL,
+		Data: dto.ExtractionResponse{
+			MaskUrl:     fileURL,
+			InputImage:  inputImage,
+			OutputImage: outputImage,
+		},
 	})
 }
 
@@ -112,5 +116,23 @@ func (c *BuildingExtractionController) HandleGetProjects(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, dto.Response{
 		Data: projectResponses,
+	})
+}
+
+func (c *BuildingExtractionController) HandleSaveProject(ctx *gin.Context) {
+	var saveProjectRequest dto.SaveProjectRequest
+	if err := ctx.ShouldBindJSON(&saveProjectRequest); err != nil {
+		dto.FailWithMessage("bind save project request failed", ctx)
+		return
+	}
+
+	err := c.service.SaveProject(saveProjectRequest)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: "save project successful",
 	})
 }

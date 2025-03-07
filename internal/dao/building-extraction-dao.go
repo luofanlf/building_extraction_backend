@@ -61,3 +61,12 @@ func (d *BuildingExtractionDao) GetAllProjects(db *gorm.DB) ([]model.Project, er
 	}
 	return projects, nil
 }
+
+func (d *BuildingExtractionDao) CreateProject(db *gorm.DB, project *model.Project) error {
+	err := db.Create(project).Error
+	if err != nil {
+		d.logger.Error("create project failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
