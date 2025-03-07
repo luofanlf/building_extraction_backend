@@ -6,3 +6,5 @@
 !/uploads/.gitkeep
 !/results/.gitkeep
 
+# 忽略模型文件
+ml_server/models/*.ckpt 
