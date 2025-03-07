@@ -13,6 +13,7 @@ type SaveProjectRequest struct {
 }
 
 type ProjectResponse struct {
+	Id          int       `json:"id"`
 	CreatedAt   time.Time `json:"created_at"`
 	ProjectName string    `json:"name"`
 	InputImage  string    `json:"input_image"`
@@ -22,6 +23,7 @@ type ProjectResponse struct {
 
 func ProjectToResponse(project *model.Project) ProjectResponse {
 	return ProjectResponse{
+		Id:          project.ID,
 		CreatedAt:   project.CreatedAt,
 		ProjectName: project.ProjectName,
 		InputImage:  project.InputImage,

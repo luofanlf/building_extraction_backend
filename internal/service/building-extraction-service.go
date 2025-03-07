@@ -196,7 +196,8 @@ func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header
 	maskFilename := strings.TrimSuffix(outputFilename, path.Ext(outputFilename)) + "_mask.png"
 	maskURL := "/results/" + maskFilename
 
-	return maskURL, filepath, outputFilepath, nil
+	resultFilepath := "results/" + maskFilename
+	return maskURL, filepath, resultFilepath, nil
 }
 
 // 辅助函数：验证文件是否为有效的图片类型
@@ -245,4 +246,13 @@ func (s *BuildingExtractionService) SaveProject(saveProjectRequest dto.SaveProje
 		return err
 	}
 	return nil
+}
+
+func (s *BuildingExtractionService) GetProjectById(projectId string) (*model.Project, error) {
+	project, err := s.dao.GetProjectById(s.db, projectId)
+	if err != nil {
+		s.logger.Error("get project by id failed", zap.Error(err))
+		return nil, err
+	}
+	return project, nil
 }

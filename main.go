@@ -62,6 +62,7 @@ func main() {
 		authorized.POST("/extraction", ctrl.HandleExtraction)
 		authorized.GET("/projects", ctrl.HandleGetProjects)
 		authorized.POST("/projects", ctrl.HandleSaveProject)
+		authorized.GET("/projects/:id", ctrl.HandleGetProjectDetail)
 	}
 
 	r.Run(":8080")
