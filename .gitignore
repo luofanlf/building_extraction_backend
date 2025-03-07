@@ -1,0 +1,7 @@
+# 忽略 uploads 和 results 目录中的所有文件
+/uploads/*
+/results/*
+
+# 但保留目录本身（通过添加 .gitkeep 文件）
+!/uploads/.gitkeep
+!/results/.gitkeep 
