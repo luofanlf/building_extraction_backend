@@ -70,3 +70,13 @@ func (d *BuildingExtractionDao) CreateProject(db *gorm.DB, project *model.Projec
 	}
 	return nil
 }
+
+func (d *BuildingExtractionDao) GetProjectById(db *gorm.DB, projectId string) (*model.Project, error) {
+	var project model.Project
+	err := db.Model(&model.Project{}).Where("id = ?", projectId).First(&project).Error
+	if err != nil {
+		d.logger.Error("get project by id failed", zap.Error(err))
+		return nil, err
+	}
+	return &project, nil
+}

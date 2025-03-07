@@ -136,3 +136,16 @@ func (c *BuildingExtractionController) HandleSaveProject(ctx *gin.Context) {
 		Data: "save project successful",
 	})
 }
+
+func (c *BuildingExtractionController) HandleGetProjectDetail(ctx *gin.Context) {
+	projectId := ctx.Param("id")
+	project, err := c.service.GetProjectById(projectId)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: dto.ProjectToResponse(project),
+	})
+}
