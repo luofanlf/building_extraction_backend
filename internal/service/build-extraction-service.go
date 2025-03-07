@@ -1,12 +1,14 @@
 package service
 
 import (
+	"building-extraction/api/dto"
 	"building-extraction/internal/dao"
 	"building-extraction/internal/model"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -90,6 +92,12 @@ func (s *BuildingExtractionService) Register(username string, password string) e
 		return fmt.Errorf("password must be at least 8 characters, contain at least 1 letter and 1 number")
 	}
 
+	err := s.validateUsernameOrEmail(username)
+	if err != nil {
+		s.logger.Error("validate username or email failed", zap.Error(err))
+		return err
+	}
+
 	//check if username exists
 	exist, err := s.dao.CheckUserExists(s.db, registerUser.Username)
 	if err != nil {
@@ -125,47 +133,70 @@ func (s *BuildingExtractionService) GetUserInfo(username string) (*model.User, e
 	return user, nil
 }
 
-func (s *BuildingExtractionService) UploadImage(file multipart.File, header *multipart.FileHeader) (string, error) {
+func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header *multipart.FileHeader) (string, string, string, error) {
+	//上传图片
 	if !isValidImageType(header.Filename) {
 		s.logger.Error("invalid file type", zap.Error(fmt.Errorf("invalid file type. only image files are allowed")))
-		return "", fmt.Errorf("invalid file type. only image files are allowed")
+		return "", "", "", fmt.Errorf("invalid file type. only image files are allowed")
 	}
-
 	// 3. 验证文件大小 (限制为20MB)
 	if header.Size > 20*1024*1024 {
 		s.logger.Error("file size exceeds the limit (20MB)")
-		return "", fmt.Errorf("file size exceeds the limit (20MB)")
+		return "", "", "", fmt.Errorf("file size exceeds the limit (20MB)")
 	}
-
 	// 4. 为文件生成唯一文件名
 	filename := generateUniqueFilename(header.Filename)
-
 	// 5. 确保上传目录存在
 	uploadDir := "./uploads"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		s.logger.Error("failed to create upload directory", zap.Error(err))
-		return "", fmt.Errorf("failed to create upload directory")
+		return "", "", "", fmt.Errorf("failed to create upload directory")
 	}
-
 	// 6. 创建目标文件
 	filepath := path.Join(uploadDir, filename)
 	out, err := os.Create(filepath)
 	if err != nil {
 		s.logger.Error("failed to create file on server", zap.Error(err))
-		return "", fmt.Errorf("failed to create file on server")
+		return "", "", "", fmt.Errorf("failed to create file on server")
 	}
 	defer out.Close()
-
 	// 7. 将上传的文件内容复制到目标文件
 	_, err = io.Copy(out, file)
 	if err != nil {
 		s.logger.Error("failed to save file on server", zap.Error(err))
-		return "", fmt.Errorf("failed to save file on server")
+		return "", "", "", fmt.Errorf("failed to save file on server")
 	}
 
-	// 8. 获取文件的相对URL路径
-	fileURL := "/uploads/" + filename
-	return fileURL, nil
+	// 3. 生成输出文件名（注意：这里只要 .png，就留给 Python 来补 _mask.png）
+	resultsDir := "./results"
+	if err := os.MkdirAll(resultsDir, 0755); err != nil {
+		s.logger.Error("failed to create results directory", zap.Error(err))
+		return "", "", "", fmt.Errorf("failed to create results directory")
+	}
+	// 假设你想以同一个名字结尾为 .png
+	outputFilename := strings.TrimSuffix(filename, path.Ext(filename)) + ".png"
+	outputFilepath := path.Join(resultsDir, outputFilename)
+
+	// 4. 调用 Python
+	cmd := exec.Command("python", "ml_server/inference.py",
+		"--input", filepath,
+		"--output", outputFilepath,
+		"--model", "ml_server/models/UANet_VGG.ckpt",
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		s.logger.Error("failed to execute python script",
+			zap.Error(err),
+			zap.String("output", string(output)))
+		return "", "", "", fmt.Errorf("building extraction failed: %v", err)
+	}
+
+	// 5. Go 端最终想返回 _mask.png 对应的访问 URL
+	// Python 里最后实际生成的文件是 xxx_mask.png
+	maskFilename := strings.TrimSuffix(outputFilename, path.Ext(outputFilename)) + "_mask.png"
+	maskURL := "/results/" + maskFilename
+
+	return maskURL, filepath, outputFilepath, nil
 }
 
 // 辅助函数：验证文件是否为有效的图片类型
@@ -191,40 +222,6 @@ func generateUniqueFilename(originalFilename string) string {
 	return fmt.Sprintf("%d_%s%s", timestamp, uuid, ext)
 }
 
-func (s *BuildingExtractionService) ExtractBuildings(imageURL string) (string, error) {
-	// 1. 获取原始图片路径
-	uploadDir := "./uploads"
-	originalFileName := path.Base(imageURL)
-	originalFilePath := path.Join(uploadDir, originalFileName)
-
-	// 2. 确保assets目录存在
-	assetsDir := "./assets"
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		s.logger.Error("failed to create assets directory", zap.Error(err))
-		return "", fmt.Errorf("创建assets目录失败")
-	}
-
-	// 3. 为处理结果创建唯一文件名
-	resultFileName := fmt.Sprintf("extracted_%s", originalFileName)
-	resultFilePath := path.Join(assetsDir, resultFileName)
-
-	// 4. 调用建筑物提取模型处理图片
-	err := s.processImageWithModel(originalFilePath, resultFilePath)
-	if err != nil {
-		s.logger.Error("building extraction failed", zap.Error(err))
-		return "", fmt.Errorf("建筑物提取失败: %v", err)
-	}
-
-	// 5. 返回结果图片的URL
-	resultURL := "/assets/" + resultFileName
-	return resultURL, nil
-}
-
-func (s *BuildingExtractionService) processImageWithModel(inputPath, outputPath string) error {
-	// 1. 预处理图像，将其转换为模型输入格式
-	return nil
-}
-
 func (s *BuildingExtractionService) GetAllProjects() ([]model.Project, error) {
 	projects, err := s.dao.GetAllProjects(s.db)
 	if err != nil {
@@ -233,4 +230,19 @@ func (s *BuildingExtractionService) GetAllProjects() ([]model.Project, error) {
 	}
 
 	return projects, nil
+}
+
+func (s *BuildingExtractionService) SaveProject(saveProjectRequest dto.SaveProjectRequest) error {
+	project := model.Project{
+		ProjectName: saveProjectRequest.ProjectName,
+		InputImage:  saveProjectRequest.InputImage,
+		OutputImage: saveProjectRequest.OutputImage,
+		ModelName:   saveProjectRequest.ModelName,
+	}
+	err := s.dao.CreateProject(s.db, &project)
+	if err != nil {
+		s.logger.Error("save project failed", zap.Error(err))
+		return err
+	}
+	return nil
 }

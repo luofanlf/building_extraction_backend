@@ -35,6 +35,7 @@ func main() {
 	r.MaxMultipartMemory = 20 << 20
 
 	r.Static("/uploads", "./uploads")
+	r.Static("/results", "./results") // 为生成的掩码图片
 
 	//health check
 	r.GET("/api/message", func(c *gin.Context) {
@@ -60,6 +61,7 @@ func main() {
 		// authorized.POST("/extraction", ctrl.HandleExtraction)
 		authorized.POST("/extraction", ctrl.HandleExtraction)
 		authorized.GET("/projects", ctrl.HandleGetProjects)
+		authorized.POST("/projects", ctrl.HandleSaveProject)
 	}
 
 	r.Run(":8080")

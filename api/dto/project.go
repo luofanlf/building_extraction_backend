@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+type SaveProjectRequest struct {
+	ProjectName string `json:"name"`
+	InputImage  string `json:"input_image"`
+	OutputImage string `json:"output_image"`
+	ModelName   string `json:"model"`
+}
+
 type ProjectResponse struct {
 	CreatedAt   time.Time `json:"created_at"`
 	ProjectName string    `json:"name"`
@@ -21,4 +28,10 @@ func ProjectToResponse(project *model.Project) ProjectResponse {
 		OutputImage: project.OutputImage,
 		ModelName:   project.ModelName,
 	}
+}
+
+type ExtractionResponse struct {
+	MaskUrl     string `json:"mask_url"`
+	InputImage  string `json:"input_image"`
+	OutputImage string `json:"output_image"`
 }
