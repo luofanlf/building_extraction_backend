@@ -80,3 +80,19 @@ func (d *BuildingExtractionDao) GetProjectById(db *gorm.DB, projectId string) (*
 	}
 	return &project, nil
 }
+
+func (d *BuildingExtractionDao) DeleteProject(db *gorm.DB, projectId string) (*model.Project, error) {
+	var project *model.Project
+	err := db.Model(&model.Project{}).Where("id = ?", projectId).First(&project).Error
+	if err != nil {
+		d.logger.Error("delete project failed", zap.Error(err))
+		return nil, err
+	}
+
+	err = db.Model(&model.Project{}).Where("id = ?", projectId).Delete(&project).Error
+	if err != nil {
+		d.logger.Error("delete project failed", zap.Error(err))
+		return nil, err
+	}
+	return project, nil
+}

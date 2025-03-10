@@ -149,3 +149,16 @@ func (c *BuildingExtractionController) HandleGetProjectDetail(ctx *gin.Context) 
 		Data: dto.ProjectToResponse(project),
 	})
 }
+
+func (c *BuildingExtractionController) HandleDeleteProject(ctx *gin.Context) {
+	projectId := ctx.Param("id")
+	err := c.service.DeleteProject(projectId)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: "delete project successful",
+	})
+}

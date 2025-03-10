@@ -256,3 +256,16 @@ func (s *BuildingExtractionService) GetProjectById(projectId string) (*model.Pro
 	}
 	return project, nil
 }
+
+func (s *BuildingExtractionService) DeleteProject(projectId string) error {
+	project, err := s.dao.DeleteProject(s.db, projectId)
+	if err != nil {
+		s.logger.Error("delete project failed", zap.Error(err))
+		return err
+	}
+
+	//删除本地文件夹中存储的图片
+	os.Remove(project.InputImage)
+	os.Remove(project.OutputImage)
+	return nil
+}
