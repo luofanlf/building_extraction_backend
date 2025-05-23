@@ -103,7 +103,21 @@ func (c *BuildingExtractionController) HandleExtraction(ctx *gin.Context) {
 }
 
 func (c *BuildingExtractionController) HandleGetProjects(ctx *gin.Context) {
-	projects, err := c.service.GetAllProjects()
+	// 从 JWT token 中获取用户信息
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	// 获取用户信息
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	projects, err := c.service.GetAllProjects(user.ID)
 	if err != nil {
 		dto.FailWithMessage(err.Error(), ctx)
 		return
@@ -126,7 +140,21 @@ func (c *BuildingExtractionController) HandleSaveProject(ctx *gin.Context) {
 		return
 	}
 
-	err := c.service.SaveProject(saveProjectRequest)
+	// 从 JWT token 中获取用户信息
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	// 获取用户信息
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	err = c.service.SaveProject(saveProjectRequest, user.ID)
 	if err != nil {
 		dto.FailWithMessage(err.Error(), ctx)
 		return

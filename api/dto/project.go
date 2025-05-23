@@ -19,6 +19,7 @@ type ProjectResponse struct {
 	InputImage  string    `json:"input_image"`
 	OutputImage string    `json:"output_image"`
 	ModelName   string    `json:"model"`
+	UserID      int       `json:"user_id"`
 }
 
 func ProjectToResponse(project *model.Project) ProjectResponse {
@@ -29,6 +30,7 @@ func ProjectToResponse(project *model.Project) ProjectResponse {
 		InputImage:  project.InputImage,
 		OutputImage: project.OutputImage,
 		ModelName:   project.ModelName,
+		UserID:      project.UserID,
 	}
 }
 
