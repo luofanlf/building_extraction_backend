@@ -223,22 +223,22 @@ func generateUniqueFilename(originalFilename string) string {
 	return fmt.Sprintf("%d_%s%s", timestamp, uuid, ext)
 }
 
-func (s *BuildingExtractionService) GetAllProjects() ([]model.Project, error) {
-	projects, err := s.dao.GetAllProjects(s.db)
+func (s *BuildingExtractionService) GetAllProjects(userID int) ([]model.Project, error) {
+	projects, err := s.dao.GetAllProjects(s.db, userID)
 	if err != nil {
 		s.logger.Error("get all projects failed", zap.Error(err))
 		return nil, err
 	}
-
 	return projects, nil
 }
 
-func (s *BuildingExtractionService) SaveProject(saveProjectRequest dto.SaveProjectRequest) error {
+func (s *BuildingExtractionService) SaveProject(saveProjectRequest dto.SaveProjectRequest, userID int) error {
 	project := model.Project{
 		ProjectName: saveProjectRequest.ProjectName,
 		InputImage:  saveProjectRequest.InputImage,
 		OutputImage: saveProjectRequest.OutputImage,
 		ModelName:   saveProjectRequest.ModelName,
+		UserID:      userID,
 	}
 	err := s.dao.CreateProject(s.db, &project)
 	if err != nil {
