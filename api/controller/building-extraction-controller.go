@@ -190,3 +190,23 @@ func (c *BuildingExtractionController) HandleDeleteProject(ctx *gin.Context) {
 		Data: "delete project successful",
 	})
 }
+
+func (c *BuildingExtractionController) HandleGetUserProfile(ctx *gin.Context) {
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	// 获取用户信息
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: dto.UserToResponse(user),
+	})
+
+}
