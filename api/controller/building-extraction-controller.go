@@ -86,7 +86,22 @@ func (c *BuildingExtractionController) HandleExtraction(ctx *gin.Context) {
 	}
 	defer file.Close()
 
-	fileURL, inputImage, outputImage, err := c.service.ExtractBuildings(file, header)
+	//2. 获得提取用户信息
+	// 从 JWT token 中获取用户信息
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	// 获取用户信息
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	fileURL, inputImage, outputImage, err := c.service.ExtractBuildings(file, header, user.ID)
 	if err != nil {
 		dto.FailWithMessage(err.Error(), ctx)
 		return
