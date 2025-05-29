@@ -44,7 +44,7 @@ func (d *BuildingExtractionDao) CreateUser(db *gorm.DB, user *model.User) error 
 
 func (d *BuildingExtractionDao) GetUserByUsername(db *gorm.DB, username string) (*model.User, error) {
 	var user model.User
-	err := db.Model(&model.User{}).Where("username = ?", username).First(&user).Error
+	err := db.Where("username = ?", username).First(&user).Error
 	if err != nil {
 		d.logger.Error("get user by username failed", zap.Error(err))
 		return nil, err
@@ -95,4 +95,24 @@ func (d *BuildingExtractionDao) DeleteProject(db *gorm.DB, projectId string) (*m
 		return nil, err
 	}
 	return project, nil
+}
+
+func (d *BuildingExtractionDao) UpdateUser(db *gorm.DB, user *model.User) error {
+	// 只更新密码字段
+	err := db.Model(&model.User{}).Where("id = ?", user.ID).Update("password", user.Password).Error
+	if err != nil {
+		d.logger.Error("update user failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (d *BuildingExtractionDao) GetUserPassword(db *gorm.DB, username string) (string, error) {
+	var user model.User
+	err := db.Model(&model.User{}).Where("username = ?", username).First(&user).Error
+	if err != nil {
+		d.logger.Error("fail to get password", zap.Error(err))
+		return "", err
+	}
+	return user.Password, nil
 }

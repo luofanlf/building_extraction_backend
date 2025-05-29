@@ -13,6 +13,11 @@ type RegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required"`
+}
+
 type UserResponse struct {
 	Username        string `json:"username"`
 	ExtractionCount int    `json:"extraction_count"`

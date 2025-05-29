@@ -269,3 +269,29 @@ func (s *BuildingExtractionService) DeleteProject(projectId string) error {
 	os.Remove(project.OutputImage)
 	return nil
 }
+
+func (s *BuildingExtractionService) UpdatePassword(user *model.User, currentPassword, newPassword string) error {
+
+	//验证旧密码
+	password, err := s.dao.GetUserPassword(s.db, user.Username)
+	if err != nil {
+		s.logger.Error("fail to get password", zap.Error(err))
+		return err
+	}
+
+	if password != currentPassword {
+		s.logger.Error("wrong password")
+		return fmt.Errorf("wrong password")
+	}
+
+	// // 验证新密码
+	// if !passwordRegex.MatchString(newPassword) ||
+	// 	!strings.ContainsAny(newPassword, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"+
+	// 		"abcdefghijklmnopqrstuvwxyz") ||
+	// 	!strings.ContainsAny(newPassword, "0123456789") {
+	// 	return fmt.Errorf("password must be at least 8 characters, contain at least 1 letter and 1 number")
+	// }
+
+	user.Password = newPassword
+	return s.dao.UpdateUser(s.db, user)
+}
