@@ -210,3 +210,38 @@ func (c *BuildingExtractionController) HandleGetUserProfile(ctx *gin.Context) {
 	})
 
 }
+
+func (c *BuildingExtractionController) HandleUpdatePassword(ctx *gin.Context) {
+	var updatePasswordRequest dto.UpdatePasswordRequest
+	if err := ctx.ShouldBindJSON(&updatePasswordRequest); err != nil {
+		dto.FailWithMessage("bind update password request failed", ctx)
+		c.logger.Error("bind update password request failed: ", zap.Error(err))
+		return
+	}
+
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		c.logger.Error("unauthorized")
+		return
+	}
+
+	// 获取用户信息
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		c.logger.Error("get user info failed: ", zap.Error(err))
+		return
+	}
+
+	err = c.service.UpdatePassword(user, updatePasswordRequest.CurrentPassword, updatePasswordRequest.NewPassword)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		c.logger.Error("update password failed: ", zap.Error(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: "update password successfully",
+	})
+}

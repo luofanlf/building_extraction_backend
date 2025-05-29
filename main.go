@@ -65,6 +65,7 @@ func main() {
 		authorized.GET("/projects/:id", ctrl.HandleGetProjectDetail)
 		authorized.DELETE("/projects/:id", ctrl.HandleDeleteProject)
 		authorized.GET("/user/profile", ctrl.HandleGetUserProfile)
+		authorized.PUT("/user/password", ctrl.HandleUpdatePassword)
 	}
 
 	r.Run(":8080")
