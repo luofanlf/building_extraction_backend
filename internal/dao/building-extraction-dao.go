@@ -116,3 +116,22 @@ func (d *BuildingExtractionDao) GetUserPassword(db *gorm.DB, username string) (s
 	}
 	return user.Password, nil
 }
+
+func (d *BuildingExtractionDao) DeductRemainingCount(db *gorm.DB, userID int) error {
+	err := db.Model(&model.User{}).Where("id = ?", userID).UpdateColumn("remaining_count", gorm.Expr("remaining_count - ?", 1)).Error
+	if err != nil {
+		d.logger.Error("deduct remaining count failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (d *BuildingExtractionDao) CheckRemainingCount(db *gorm.DB, userID int) (int, error) {
+	var user model.User
+	err := db.Model(&model.User{}).Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		d.logger.Error("get user info failed", zap.Error(err))
+		return 0, err
+	}
+	return user.RemainingCount, nil
+}

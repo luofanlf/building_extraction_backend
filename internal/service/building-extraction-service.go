@@ -80,8 +80,9 @@ func (s *BuildingExtractionService) Login(username string, password string) (str
 
 func (s *BuildingExtractionService) Register(username string, password string) error {
 	registerUser := model.User{
-		Username: username,
-		Password: password,
+		Username:       username,
+		Password:       password,
+		RemainingCount: 10,
 	}
 
 	// 验证密码：至少8个字符，包含至少1个字母和1个数字
@@ -133,7 +134,17 @@ func (s *BuildingExtractionService) GetUserInfo(username string) (*model.User, e
 	return user, nil
 }
 
-func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header *multipart.FileHeader) (string, string, string, error) {
+func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header *multipart.FileHeader, userID int) (string, string, string, error) {
+	//校验用户是否还有剩余提取次数
+	count, err := s.dao.CheckRemainingCount(s.db, userID)
+	if err != nil {
+		s.logger.Error("check remaining count failed", zap.Error(err))
+		return "", "", "", fmt.Errorf("building extraction failed: %v", err)
+	}
+	if count <= 0 {
+		s.logger.Error("user has no remaining extraction count")
+		return "", "", "", fmt.Errorf("user has no remaining extraction count")
+	}
 	//上传图片
 	if !isValidImageType(header.Filename) {
 		s.logger.Error("invalid file type", zap.Error(fmt.Errorf("invalid file type. only image files are allowed")))
@@ -195,6 +206,13 @@ func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header
 	// Python 里最后实际生成的文件是 xxx_mask.png
 	maskFilename := strings.TrimSuffix(outputFilename, path.Ext(outputFilename)) + "_mask.png"
 	maskURL := "/results/" + maskFilename
+
+	//6. 成功调用，用户剩余提取次数-1
+	err = s.dao.DeductRemainingCount(s.db, userID)
+	if err != nil {
+		s.logger.Error("deduct remainning count failed", zap.Error(err))
+		return "", "", "", fmt.Errorf("building extraction failed: %v", err)
+	}
 
 	resultFilepath := "results/" + maskFilename
 	return maskURL, filepath, resultFilepath, nil

@@ -22,6 +22,7 @@ type UserResponse struct {
 	Username        string `json:"username"`
 	ExtractionCount int    `json:"extraction_count"`
 	RemainingCount  int    `json:"remaining_count"`
+	UserRole        int    `json:"is_admin"`
 }
 
 func UserToResponse(user *model.User) UserResponse {
@@ -29,5 +30,6 @@ func UserToResponse(user *model.User) UserResponse {
 		Username:        user.Username,
 		ExtractionCount: user.ExtractionCount,
 		RemainingCount:  user.RemainingCount,
+		UserRole:        user.UserRole,
 	}
 }
