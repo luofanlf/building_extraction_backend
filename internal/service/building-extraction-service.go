@@ -207,7 +207,7 @@ func (s *BuildingExtractionService) ExtractBuildings(file multipart.File, header
 	maskFilename := strings.TrimSuffix(outputFilename, path.Ext(outputFilename)) + "_mask.png"
 	maskURL := "/results/" + maskFilename
 
-	//6. 成功调用，用户剩余提取次数-1
+	//6. 成功调用，用户剩余提取次数-1，成功调用次数+1
 	err = s.dao.DeductRemainingCount(s.db, userID)
 	if err != nil {
 		s.logger.Error("deduct remainning count failed", zap.Error(err))
@@ -312,4 +312,109 @@ func (s *BuildingExtractionService) UpdatePassword(user *model.User, currentPass
 
 	user.Password = newPassword
 	return s.dao.UpdateUser(s.db, user)
+}
+
+func (s *BuildingExtractionService) GetAdminStats() (*dto.AdminStatsResponse, error) {
+	totalUsers, err := s.dao.GetTotalUsers(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	totalExtractions, err := s.dao.GetTotalExtractions(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	activeUsersToday, err := s.dao.GetActiveUsersToday(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	extractionsToday, err := s.dao.GetExtractionsToday(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AdminStatsResponse{
+		TotalUsers:       totalUsers,
+		TotalExtractions: totalExtractions,
+		ActiveUsersToday: activeUsersToday,
+		ExtractionsToday: extractionsToday,
+	}, nil
+}
+
+func (s *BuildingExtractionService) CreateExtractionRequest(userID int, requestCount int, reason string) error {
+	request := &model.ExtractionRequest{
+		UserID:       userID,
+		RequestCount: requestCount,
+		Status:       model.RequestStatusPending,
+		Reason:       reason,
+	}
+	return s.dao.CreateExtractionRequest(s.db, request)
+}
+
+func (s *BuildingExtractionService) GetPendingRequests() ([]dto.RequestResponse, error) {
+	requests, err := s.dao.GetPendingRequests(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.RequestResponse, len(requests))
+	for i, req := range requests {
+		responses[i] = dto.RequestResponse{
+			ID:           req.ID,
+			UserID:       req.UserID,
+			Username:     req.User.Username,
+			RequestCount: req.RequestCount,
+			Status:       int(req.Status),
+			Reason:       req.Reason,
+			Reply:        req.Reply,
+			CreatedAt:    req.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+	return responses, nil
+}
+
+func (s *BuildingExtractionService) HandleRequest(requestID int, status model.RequestStatus, reply string) error {
+	return s.dao.HandleRequest(s.db, requestID, status, reply)
+}
+
+func (s *BuildingExtractionService) GetAllUsers() ([]dto.UserManagementResponse, error) {
+	users, err := s.dao.GetAllUsers(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.UserManagementResponse, len(users))
+	for i, user := range users {
+		responses[i] = dto.UserManagementResponse{
+			ID:              user.ID,
+			Username:        user.Username,
+			CreatedAt:       user.CreatedAt.Format("2006-01-02 15:04:05"),
+			ExtractionCount: user.ExtractionCount,
+			RemainingCount:  user.RemainingCount,
+			UserRole:        user.UserRole,
+		}
+	}
+	return responses, nil
+}
+
+func (s *BuildingExtractionService) GetUserRequests(userID int) ([]dto.UserRequestResponse, error) {
+	requests, err := s.dao.GetUserRequests(s.db, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.UserRequestResponse, len(requests))
+	for i, req := range requests {
+		responses[i] = dto.UserRequestResponse{
+			ID:           req.ID,
+			RequestCount: req.RequestCount,
+			Status:       int(req.Status),
+			Reason:       req.Reason,
+			Reply:        req.Reply,
+			CreatedAt:    req.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+	return responses, nil
 }
