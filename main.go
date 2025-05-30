@@ -26,7 +26,7 @@ func main() {
 	fmt.Println("数据库连接成功")
 
 	// 自动迁移
-	if err := db.AutoMigrate(&model.User{}, &model.Project{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Project{}, &model.ExtractionRequest{}); err != nil {
 		log.Printf("自动迁移警告: %v", err)
 	} else {
 		fmt.Println("自动迁移成功")
@@ -66,6 +66,12 @@ func main() {
 		authorized.DELETE("/projects/:id", ctrl.HandleDeleteProject)
 		authorized.GET("/user/profile", ctrl.HandleGetUserProfile)
 		authorized.PUT("/user/password", ctrl.HandleUpdatePassword)
+		authorized.GET("/user/requests", ctrl.HandleGetUserRequests)
+		authorized.GET("/admin/stats", ctrl.HandleGetAdminStats)
+		authorized.POST("/requests", ctrl.HandleCreateRequest)
+		authorized.GET("/admin/requests", ctrl.HandleGetPendingRequests)
+		authorized.POST("/admin/requests/handle", ctrl.HandleRequest)
+		authorized.GET("/admin/users", ctrl.HandleGetAllUsers)
 	}
 
 	r.Run(":8080")

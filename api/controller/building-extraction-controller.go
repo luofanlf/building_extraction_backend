@@ -2,6 +2,7 @@ package controller
 
 import (
 	"building-extraction/api/dto"
+	"building-extraction/internal/model"
 	"building-extraction/internal/service"
 	"net/http"
 
@@ -258,5 +259,186 @@ func (c *BuildingExtractionController) HandleUpdatePassword(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, dto.Response{
 		Data: "update password successfully",
+	})
+}
+
+func (c *BuildingExtractionController) HandleGetAdminStats(ctx *gin.Context) {
+	// 检查用户是否是管理员
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	if user.UserRole != 1 { // 假设 1 是管理员角色
+		dto.FailWithMessage("permission denied", ctx)
+		return
+	}
+
+	stats, err := c.service.GetAdminStats()
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: stats,
+	})
+}
+
+func (c *BuildingExtractionController) HandleCreateRequest(ctx *gin.Context) {
+	var createRequest dto.CreateRequestRequest
+	if err := ctx.ShouldBindJSON(&createRequest); err != nil {
+		dto.FailWithMessage("bind request failed", ctx)
+		return
+	}
+
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	err = c.service.CreateExtractionRequest(user.ID, createRequest.RequestCount, createRequest.Reason)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: "request created successfully",
+	})
+}
+
+func (c *BuildingExtractionController) HandleGetPendingRequests(ctx *gin.Context) {
+	// 检查是否是管理员
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	if user.UserRole != 1 {
+		dto.FailWithMessage("permission denied", ctx)
+		return
+	}
+
+	requests, err := c.service.GetPendingRequests()
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: requests,
+	})
+}
+
+func (c *BuildingExtractionController) HandleRequest(ctx *gin.Context) {
+	var handleRequest dto.HandleRequestRequest
+	if err := ctx.ShouldBindJSON(&handleRequest); err != nil {
+		dto.FailWithMessage("bind request failed", ctx)
+		return
+	}
+
+	// 检查是否是管理员
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	if user.UserRole != 1 {
+		dto.FailWithMessage("permission denied", ctx)
+		return
+	}
+
+	err = c.service.HandleRequest(handleRequest.RequestID, model.RequestStatus(handleRequest.Status), handleRequest.Reply)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: "request handled successfully",
+	})
+}
+
+func (c *BuildingExtractionController) HandleGetAllUsers(ctx *gin.Context) {
+	// 检查是否是管理员
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	if user.UserRole != 1 {
+		dto.FailWithMessage("permission denied", ctx)
+		return
+	}
+
+	users, err := c.service.GetAllUsers()
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: users,
+	})
+}
+
+func (c *BuildingExtractionController) HandleGetUserRequests(ctx *gin.Context) {
+	// 获取当前登录用户信息
+	username, exists := ctx.Get("username")
+	if !exists {
+		dto.FailWithMessage("unauthorized", ctx)
+		return
+	}
+
+	user, err := c.service.GetUserInfo(username.(string))
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	requests, err := c.service.GetUserRequests(user.ID)
+	if err != nil {
+		dto.FailWithMessage(err.Error(), ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.Response{
+		Data: requests,
 	})
 }
